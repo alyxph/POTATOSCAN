@@ -1,0 +1,17 @@
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Dataset (Ignore photos)
+backend/dataset/
+backend/dataset/*
+*.jpg
+*.jpeg
+*.png
+*.JPG
+*.JPEG
+*.PNG
+
+# Model file (Optional: keep or ignore based on preference, usually large models are ignored)
+# backend/*.pkl
