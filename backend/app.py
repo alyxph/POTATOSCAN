@@ -27,6 +27,8 @@ def classify_image():
     if features is None:
         return jsonify({'error': 'Failed to extract features'}), 400
         
+    print("Extracted Features:", features) # Debugging output
+
     # Predict
     label, confidence = predict_potato(features)
     

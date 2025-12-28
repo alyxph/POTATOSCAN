@@ -11,8 +11,9 @@ import glob
 # Import functions from our existing utils
 from utils import preprocess_image, extract_features
 
-DATASET_PATH = 'dataset'
-MODEL_PATH = 'model_terbaik_Random_Forest.pkl'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATASET_PATH = os.path.join(BASE_DIR, 'dataset')
+MODEL_PATH = os.path.join(BASE_DIR, 'model_terbaik_Random_Forest.pkl')
 
 def load_dataset():
     features = []
