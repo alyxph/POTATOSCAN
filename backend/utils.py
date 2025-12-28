@@ -59,9 +59,10 @@ def preprocess_image(image_file, target_size=(128, 128)):
         blurred = cv2.GaussianBlur(gray_image, (15, 15), 0)
         steps['blur'] = to_base64(blurred)
 
-        # 5. Threshold
-        _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        steps['threshold'] = to_base64(thresh)
+      # 5. Threshold (Adaptive)
+        _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        if thresh[0, 0] == 255:
+            thresh = cv2.bitwise_not(thresh)
         
         # 6. Contours Detection
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -84,7 +85,12 @@ def preprocess_image(image_file, target_size=(128, 128)):
             cv2.drawContours(contour_viz, [main_cnt], -1, (0, 0, 255), 2)
             
             # --- LOGIKA 2: EKSTRAK ROI (Terpisah) ---
-            roi, bbox = extract_roi(gray_image, main_cnt)
+             # Apply Masking (Background removal)
+            mask = np.zeros_like(gray_image)
+            cv2.drawContours(mask, [main_cnt], -1, 255, -1)
+            masked_img = cv2.bitwise_and(gray_image, gray_image, mask=mask)
+            
+            roi, bbox = extract_roi(masked_img, main_cnt)
             
             # --- LOGIKA 3: GAMBAR BOUNDING BOX (Biru) ---
             # Menggunakan hasil dari fungsi extract_roi untuk visualisasi
@@ -139,14 +145,17 @@ def extract_features(roi, contour):
         if roi.dtype != np.uint8:
             roi = (roi * 255).astype(np.uint8)
 
-        glcm = graycomatrix(roi, distances=[1], angles=[0], levels=256,
+        img_normalized = ((roi / roi.max()) * 255).astype(np.uint8) if roi.max() > 0 else roi
+
+        # Use 4 angles as per training script
+        glcm = graycomatrix(img_normalized, distances=[1], angles=[0, np.pi/4, np.pi/2, 3*np.pi/4], levels=256,
                             symmetric=True, normed=True)
                             
-        contrast = graycoprops(glcm, 'contrast')[0, 0]
-        dissimilarity = graycoprops(glcm, 'dissimilarity')[0, 0]
-        homogeneity = graycoprops(glcm, 'homogeneity')[0, 0]
-        energy = graycoprops(glcm, 'energy')[0, 0]
-        correlation = graycoprops(glcm, 'correlation')[0, 0]
+        contrast = graycoprops(glcm, 'contrast').mean()
+        dissimilarity = graycoprops(glcm, 'dissimilarity').mean()
+        homogeneity = graycoprops(glcm, 'homogeneity').mean()
+        energy = graycoprops(glcm, 'energy').mean()
+        correlation = graycoprops(glcm, 'correlation').mean()
         
         glcm_features = [contrast, homogeneity, energy, correlation, dissimilarity]
         
